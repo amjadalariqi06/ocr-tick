@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+PyMuPDF
+pytesseract
+opencv-python-headless
+pillow
+numpy
+python-multipart

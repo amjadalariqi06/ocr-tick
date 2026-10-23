@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: yemenia-ticket-ocr
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: OCR_LANG
+        value: ara+eng
+      - key: MAX_FILE_BYTES
+        value: 15728640
+      - key: MAX_PDF_PAGES
+        value: 10
+      - key: ALLOWED_ORIGINS
+        value: '*'

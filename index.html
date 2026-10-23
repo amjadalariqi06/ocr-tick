@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yemenia Ticket OCR | ماسح تذاكر اليمنية</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">🕋</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-extrabold text-xl text-emerald-400">Yemenia Ticket OCR</h1>
+                        <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold">v3.3.0</span>
+                    </div>
+                    <p class="text-xs text-slate-400">نظام استخراج وتحليل تذاكر طيران اليمنية</p>
+                </div>
+            </div>
+            
+            <!-- Render Server Settings -->
+            <div class="flex flex-wrap items-center gap-3 bg-slate-800/90 p-2.5 rounded-xl border border-slate-700 text-xs w-full sm:w-auto">
+                <div class="flex items-center gap-2">
+                    <span id="serverStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" title="جارٍ فحص الخادم"></span>
+                    <span class="text-slate-300 font-medium">الخادم:</span>
+                    <input type="url" id="serverUrl" value="https://yemenia-ticket-ocr.onrender.com" placeholder="https://your-app.onrender.com" 
+                           class="bg-slate-900 text-emerald-300 px-3 py-1 rounded-lg border border-slate-700 outline-none w-56 text-left font-mono text-xs focus:border-emerald-500">
+                </div>
+                
+                <label class="flex items-center gap-1.5 text-slate-300 select-none border-r border-slate-700 pr-3">
+                    <span>اتجاه النص العربي:</span>
+                    <select id="reverseMode" class="bg-slate-900 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 text-xs outline-none">
+                        <option value="auto" selected>تلقائي (موصى به)</option>
+                        <option value="false">بدون تعديل</option>
+                        <option value="true">عكس إجباري</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- Upper Section: Document Upload & Pricing Calculator -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Document Upload Box (6 cols) -->
+            <div class="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+                        ✈️ رفع تذكرة طيران اليمنية
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">ارفع تذكرة اليمنية بصيغة PDF أو صورة لاستخراج اسم المسافر والرحلات والأوقات ورقم التذكرة.</p>
+                    
+                    <div id="dropArea" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 transition rounded-2xl p-6 text-center cursor-pointer bg-slate-950/50 min-h-[140px] flex flex-col items-center justify-center group">
+                        <span class="text-4xl mb-2 group-hover:scale-110 transition duration-200">📥</span>
+                        <p id="fileNameDisplay" class="text-xs text-slate-300 font-medium">اضغط هنا أو اسحب الملف إلى هنا</p>
+                        <span class="text-[10px] text-slate-500 mt-1">PDF, PNG, JPG, JPEG (حد أقصى 15 ميجابايت)</span>
+                        <input type="file" id="fileInput" accept=".pdf, .png, .jpg, .jpeg" class="hidden">
+                    </div>
+                </div>
+
+                <button id="uploadBtn" onclick="processDocument()" disabled 
+                        class="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg flex items-center justify-center gap-2 text-sm">
+                    ⚡ معالجة واستخراج البيانات
+                </button>
+            </div>
+
+            <!-- Pricing & Profit Calculation Box (6 cols) -->
+            <div class="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-amber-400 mb-1 flex items-center gap-2">
+                        💰 التسعير وحساب الربح الفوري (إدخال يدوي)
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">يتم إدخال المبالغ يدوياً بواسطة الموظف لحساب صافي الربح.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs text-slate-300 font-bold mb-1">السعر علينا (Cost):</label>
+                            <input type="number" id="costPriceInput" placeholder="0.00" step="0.01" oninput="calculateProfit()"
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 font-bold font-mono outline-none focus:border-amber-500 text-base">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-300 font-bold mb-1">سعر العميل (Selling):</label>
+                            <input type="number" id="sellingPriceInput" placeholder="0.00" step="0.01" oninput="calculateProfit()"
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-emerald-400 font-bold font-mono outline-none focus:border-emerald-500 text-base">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Integrated Profit Badge -->
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-400 font-bold">صافي الربح:</p>
+                        <p id="profitStatusText" class="text-[11px] text-slate-500">في انتظار إدخال المبالغ من الموظف</p>
+                    </div>
+                    <div id="profitBadge" class="bg-slate-900 text-slate-400 border border-slate-800 px-4 py-2 rounded-xl font-mono text-xl font-extrabold">
+                        $0.00
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Dynamic Extracted Results Card -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 relative shadow-xl min-h-[380px]">
+            
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-2xl z-30 flex flex-col items-center justify-center gap-3">
+                <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-emerald-400 font-bold text-sm">جاري معالجة واستخراج البيانات عبر خادم VANT OCR...</p>
+                <p class="text-xs text-slate-400">قد يستغرق ذلك ثوانٍ معدودة حسب استجابة الخادم.</p>
+            </div>
+
+            <!-- Card Header -->
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-800 flex-wrap gap-2">
+                <div class="flex items-center gap-3">
+                    <span id="docIcon" class="text-3xl">🔍</span>
+                    <div>
+                        <h2 id="docTypeTitle" class="text-lg font-bold text-white">نتائج تحليل تذكرة اليمنية</h2>
+                        <p id="docSubtitle" class="text-xs text-slate-400">يرجى رفع مستند للبدء</p>
+                    </div>
+                </div>
+                <span id="docBadge" class="text-xs bg-slate-800 text-slate-400 px-3.5 py-1.5 rounded-full border border-slate-700 font-bold">بانتظار ملف</span>
+            </div>
+
+            <!-- Fields Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                
+                <!-- Full Name -->
+                <div class="lg:col-span-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label class="block text-slate-400 mb-1 font-medium">اسم المعتمر / المسافر (Passenger Name)</label>
+                    <input type="text" id="resName" value="غير متاح" 
+                           class="w-full bg-transparent text-emerald-400 font-bold text-base outline-none">
+                </div>
+
+                <!-- Nationality (New Server Field in v3.2.0) -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label class="block text-slate-400 mb-1 font-medium">الجنسية (Nationality)</label>
+                    <input type="text" id="resNationality" value="غير متاح" 
+                           class="w-full bg-transparent text-blue-400 font-bold text-sm outline-none">
+                </div>
+
+                <!-- Passport Number -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label class="block text-slate-400 mb-1 font-medium">رقم جواز السفر (Passport No.)</label>
+                    <input type="text" id="resPassport" value="غير متاح" 
+                           class="w-full bg-transparent text-slate-200 font-mono font-bold text-sm outline-none">
+                </div>
+
+                <!-- Reference / Booking Ref / Visa No -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label id="lblReference" class="block text-slate-400 mb-1 font-medium">رقم الحجز (PNR) / المرجع</label>
+                    <input type="text" id="resReference" value="غير متاح" 
+                           class="w-full bg-transparent text-amber-400 font-mono font-bold text-sm outline-none">
+                </div>
+
+                <!-- Ticket Number -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label class="block text-slate-400 mb-1 font-medium">رقم التذكرة (Ticket No.)</label>
+                    <input type="text" id="resTicketNo" value="غير متاح"
+                           class="w-full bg-transparent text-slate-200 font-mono font-bold text-sm outline-none">
+                </div>
+
+                <!-- Company / Umrah Operator / Carrier -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label id="lblCompany" class="block text-slate-400 mb-1 font-medium">شركة الطيران / الناقل</label>
+                    <input type="text" id="resCompany" value="غير متاح" 
+                           class="w-full bg-transparent text-slate-300 text-sm outline-none">
+                </div>
+
+                <!-- Route / Destination -->
+                <div class="lg:col-span-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label class="block text-slate-400 mb-1 font-medium">الوجهة والمسار (Route e.g. cai -> ade / ade -> amm -> ade)</label>
+                    <input type="text" id="resRoute" value="غير متاح" 
+                           class="w-full bg-transparent text-blue-400 font-mono font-bold text-base outline-none">
+                </div>
+
+                <!-- Outbound Details Section -->
+                <div class="lg:col-span-3 bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                    <span class="block font-bold text-blue-400 text-xs">🛫 تفاصيل رحلة الذهاب / التاريخ الرئيسي:</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">تاريخ الذهاب / الإصدار</label>
+                            <input type="text" id="resOutboundDate" value="غير متاح" placeholder="e.g. 21oct26"
+                                   class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">وقت الإقلاع (Departure)</label>
+                            <input type="text" id="resOutboundDep" value="غير متاح" placeholder="e.g. 03:35"
+                                   class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-emerald-400 font-mono text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">وقت الوصول (Arrival)</label>
+                            <input type="text" id="resOutboundArr" value="غير متاح" placeholder="e.g. 06:35"
+                                   class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-300 font-mono text-xs outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Return Details Section -->
+                <div class="lg:col-span-3 bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <span class="font-bold text-purple-400 text-xs">🛬 تفاصيل رحلة العودة:</span>
+                        <div class="flex gap-2">
+                            <button onclick="setReturnStatus('OPEN', 'مفتوح', 'مفتوح')" type="button" 
+                                    class="bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-800 text-[10px] px-2.5 py-1 rounded-lg font-bold transition">
+                                تعيين كـ OPEN
+                            </button>
+                            <button onclick="setReturnStatus('ذهاب فقط (One Way)', '-', '-')" type="button" 
+                                    class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-[10px] px-2.5 py-1 rounded-lg font-bold transition">
+                                تعيين كـ ذهاب فقط
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">تاريخ العودة</label>
+                            <input type="text" id="resReturnDate" value="غير متاح" placeholder="e.g. 28oct26"
+                                   class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">وقت الإقلاع (Departure)</label>
+                            <input type="text" id="resReturnDep" value="غير متاح" placeholder="e.g. 10:15"
+                                   class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-emerald-400 font-mono text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">وقت الوصول (Arrival)</label>
+                            <input type="text" id="resReturnArr" value="غير متاح" placeholder="e.g. 13:45"
+                                   class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-300 font-mono text-xs outline-none">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="mt-4 text-xs text-amber-300 bg-amber-950/30 border border-amber-900/60 rounded-lg p-3">
+                تنبيه: هذه نتائج استخراج آلي عبر محرك VANT OCR. راجع البيانات مع المستند الأصلي قبل الاعتماد عليها.
+            </p>
+
+            <!-- Raw OCR Text Toggle -->
+            <div class="mt-6 pt-4 border-t border-slate-800">
+                <details class="group">
+                    <summary class="text-xs text-slate-400 hover:text-emerald-400 cursor-pointer flex items-center justify-between font-medium">
+                        <span>📜 عرض النص الخام المستخرج (Raw OCR Text)</span>
+                        <span class="text-slate-600 group-open:rotate-180 transition duration-200">▼</span>
+                    </summary>
+                    <textarea id="resRawText" rows="4" readonly 
+                              class="w-full mt-3 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 font-mono outline-none resize-none"></textarea>
+                </details>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const reverseModeSelect = document.getElementById('reverseMode');
+        const statusDot = document.getElementById('serverStatusDot');
+
+        let selectedFile = null;
+
+        // Drag & Drop Handling
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('border-emerald-500'); });
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-emerald-500'));
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('border-emerald-500');
+            if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFileSelect(e.target.files[0]);
+        });
+
+        function handleFileSelect(file) {
+            if (!file) return;
+            selectedFile = file;
+            fileNameDisplay.textContent = "✅ " + file.name + " (" + (file.size / 1024).toFixed(1) + " KB)";
+            uploadBtn.disabled = false;
+        }
+
+        function calculateProfit() {
+            const costInput = document.getElementById('costPriceInput').value;
+            const sellingInput = document.getElementById('sellingPriceInput').value;
+
+            if (costInput === "" || sellingInput === "") {
+                document.getElementById('profitBadge').textContent = "$0.00";
+                document.getElementById('profitStatusText').textContent = "في انتظار إدخال المبالغ من الموظف";
+                return;
+            }
+
+            const cost = parseFloat(costInput) || 0;
+            const selling = parseFloat(sellingInput) || 0;
+            const profit = selling - cost;
+
+            const badge = document.getElementById('profitBadge');
+            const statusText = document.getElementById('profitStatusText');
+
+            badge.textContent = "$" + profit.toFixed(2);
+
+            if (profit > 0) {
+                badge.className = "bg-emerald-950 text-emerald-400 border border-emerald-800 px-4 py-2 rounded-xl font-mono text-xl font-extrabold";
+                statusText.textContent = "ربح ممتاز 📈";
+                statusText.className = "text-[11px] text-emerald-400 font-bold";
+            } else if (profit === 0) {
+                badge.className = "bg-slate-900 text-slate-400 border border-slate-800 px-4 py-2 rounded-xl font-mono text-xl font-extrabold";
+                statusText.textContent = "تعادل بدون أرباح";
+                statusText.className = "text-[11px] text-slate-400 font-bold";
+            } else {
+                badge.className = "bg-red-950 text-red-400 border border-red-800 px-4 py-2 rounded-xl font-mono text-xl font-extrabold";
+                statusText.textContent = "خسارة مالية 📉";
+                statusText.className = "text-[11px] text-red-400 font-bold";
+            }
+        }
+
+        function setReturnStatus(dateVal, depVal, arrVal) {
+            document.getElementById('resReturnDate').value = dateVal;
+            document.getElementById('resReturnDep').value = depVal;
+            document.getElementById('resReturnArr').value = arrVal;
+        }
+
+        // ---- Server health check (also wakes a sleeping Render instance) ----
+        async function warmUpServer() {
+            const baseUrl = serverUrlInput.value.trim().replace(/\/+$/, '');
+            if (!baseUrl) return;
+            statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse';
+            statusDot.title = 'جارٍ فحص الخادم (قد يحتاج حتى دقيقة إذا كان نائماً)';
+            try {
+                const controller = new AbortController();
+                const t = setTimeout(() => controller.abort(), 90000);
+                const res = await fetch(`${baseUrl}/health`, { cache: 'no-store', signal: controller.signal });
+                clearTimeout(t);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+                statusDot.title = 'الخادم يعمل';
+            } catch (e) {
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
+                statusDot.title = 'تعذر الوصول للخادم';
+            }
+        }
+        serverUrlInput.addEventListener('change', warmUpServer);
+        window.addEventListener('load', warmUpServer);
+
+        async function processDocument() {
+            if (!selectedFile) return;
+
+            let baseUrl = serverUrlInput.value.trim().replace(/\/+$/, '');
+            if (!baseUrl) {
+                alert("يرجى إدخال رابط سيرفر Render أولاً!");
+                return;
+            }
+
+            const apiUrl = `${baseUrl}/extract-document/?reverse_arabic=${encodeURIComponent(reverseModeSelect.value)}`;
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            loadingOverlay.classList.remove('hidden');
+            uploadBtn.disabled = true;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000);
+                let response;
+                try {
+                    response = await fetch(apiUrl, { method: 'POST', body: formData, signal: controller.signal });
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                const data = contentType.includes('application/json')
+                    ? await response.json()
+                    : { error: await response.text() };
+
+                if (response.ok && data.success) {
+                    const rawText = data.raw_text || data.extracted_text || "";
+                    document.getElementById('resRawText').value = rawText;
+                    analyzeAndDisplay(data.parsed_data || {}, rawText);
+                    statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+                } else {
+                    const message = data.detail || data.error || 'استجابة غير متوقعة من الخادم';
+                    alert(`تعذر معالجة الملف (HTTP ${response.status}): ${message}`);
+                }
+            } catch (err) {
+                alert(err && err.name === 'AbortError'
+                    ? 'انتهت مهلة الاتصال بالخادم. إذا كان الخادم نائماً جرّب مرة ثانية بعد دقيقة.'
+                    : 'تعذر الاتصال بالخادم. تحقق من الرابط واتصال الإنترنت.');
+                console.error('Document processing error:', err);
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                uploadBtn.disabled = false;
+            }
+        }
+
+        function setBadge(icon, title, subtitle, badgeText, badgeClass) {
+            document.getElementById('docIcon').textContent = icon;
+            document.getElementById('docTypeTitle').textContent = title;
+            document.getElementById('docSubtitle').textContent = subtitle;
+            document.getElementById('docBadge').textContent = badgeText;
+            document.getElementById('docBadge').className = badgeClass;
+        }
+
+        // All route / date / time values come from the server (it reads the coupon table and the
+        // fare-calculation line). Nothing is guessed in the browser, so a missing value stays "غير متاح"
+        // instead of showing a wrong airport or time.
+        function analyzeAndDisplay(parsed, rawText) {
+            const NA = "غير متاح";
+            const val = (v) => (v !== undefined && v !== null && String(v).trim() !== "") ? v : NA;
+            const docType = parsed.document_type || "مستند غير معروف";
+            const isVisa = docType.includes("تأشيرة");
+            const isFlight = docType.includes("طيران");
+
+            const company = val(parsed.extra1);
+
+            if (isVisa) {
+                setBadge('🕋', 'نتيجة تحليل تأشيرة عمرة', 'تأشيرة صادرة من منصة وزارة الحج / نسك', 'تأشيرة عمرة 🟩',
+                    'text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold px-3 py-1 rounded-full');
+            } else if (isFlight) {
+                setBadge('✈️', 'تذكرة طيران دولية', company !== NA ? company : 'تذكرة سفر جوية', 'تذكرة طيران 🟦',
+                    'text-xs bg-blue-950 text-blue-400 border border-blue-800 font-bold px-3 py-1 rounded-full');
+            } else {
+                setBadge('🚌', docType, 'مستند نقل / سفر عام', 'مستند عام 🟧',
+                    'text-xs bg-amber-950 text-amber-400 border border-amber-800 font-bold px-3 py-1 rounded-full');
+            }
+
+            const out = parsed.outbound || {};
+            const ret = parsed.return_trip || {};
+
+            // Reset prices for manual employee entry
+            document.getElementById('costPriceInput').value = "";
+            document.getElementById('sellingPriceInput').value = "";
+            calculateProfit();
+
+            document.getElementById('resName').value = val(parsed.full_name);
+            document.getElementById('resNationality').value = val(parsed.nationality);
+            document.getElementById('resPassport').value = val(parsed.passport_number);
+            document.getElementById('resReference').value = val(isFlight ? (parsed.pnr || parsed.reference_number) : parsed.reference_number);
+            document.getElementById('resTicketNo').value = val(parsed.ticket_number);
+            document.getElementById('resCompany').value = company;
+            document.getElementById('resRoute').value = val(parsed.route);
+
+            document.getElementById('resOutboundDate').value = val(out.date || parsed.date);
+            document.getElementById('resOutboundDep').value = val(out.dep);
+            document.getElementById('resOutboundArr').value = val(out.arr);
+
+            document.getElementById('resReturnDate').value = val(ret.date);
+            document.getElementById('resReturnDep').value = val(ret.dep);
+            document.getElementById('resReturnArr').value = val(ret.arr);
+        }
+    </script>
+</body>
+</html>
