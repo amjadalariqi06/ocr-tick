@@ -1022,7 +1022,17 @@ async def extract_document(
                         page_text = page.get_text("text") or ""
                         if len(page_text.strip()) > 30:
                             layout_text = extract_pdf_layout_text(page)
-                            extracted_parts.append(layout_text or page_text)
+                            # Itinerary receipts are dense tables. The layout
+                            # helper may find only the passenger row, so keep
+                            # the complete text stream for ticket parsing.
+                            is_ticket_layout = bool(re.search(
+                                r"PASSENGER\s+ITINERARY|TICKET\s+NUMBER|COUPON\s+ROUTE|FARE\s+CALCULATION",
+                                page_text,
+                                re.IGNORECASE,
+                            ))
+                            extracted_parts.append(
+                                page_text if is_ticket_layout else (layout_text or page_text)
+                            )
                         else:
                             pix = page.get_pixmap(dpi=OCR_DPI, alpha=False)
                             image = Image.open(io.BytesIO(pix.tobytes("png")))
